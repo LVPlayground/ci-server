@@ -7,6 +7,7 @@
 const Step = require('../components/step'),
       child_process = require('child_process'),
       filesize = require('filesize'),
+      fs = require('fs'),
       path = require('path');
 
 // Step for verifying that the Pawn portion of our gamemode continues to compile when the changes in
