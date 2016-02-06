@@ -71,6 +71,9 @@ class BuildService {
   // Updates the log entry for |step| with |status|. The |status| will be appended to whatever the
   // current log output for the |step| contains. Updates will be atomic.
   updateLog(step, status) {
+    if (typeof status !== 'string')
+      status = JSON.stringify(status);
+
     return this.storage_.updateLog(this.sha_, step, status);
   }
 
@@ -91,10 +94,12 @@ class BuildService {
   updateRepository(diffUrl, base) {
     const repo = new Repository();
 
+    const log = BuildService.prototype.updateLog.bind(this, 'update');
+
     return Promise.resolve()
         .then(() => this.updateLog('update', 'Update starting.'))
-        .then(() => repo.updateTo(base))
-        .then(() => repo.applyDiff(diffUrl))
+        .then(() => repo.updateTo(log, base))
+        .then(() => repo.applyDiff(log, diffUrl))
         .then(() => this.updateLog('update', 'Update completed.'))
         .catch(error => {
           console.error(error);

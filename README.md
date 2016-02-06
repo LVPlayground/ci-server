@@ -15,6 +15,7 @@ $ mkdir playground && cd playground
 $ git clone https://github.com/LVPlayground/playground.git
 $ git clone https://github.com/LVPlayground/playgroundjs-plugin.git
 $ git clone https://github.com/LVPlayground/ci-server.git
+$ git config --global --add remote.origin.fetch "+refs/pull/*/head:refs/remotes/origin/pr/*"
 ```
 
 These repositories contain the necessary Linux binaries for the basic checks to be executable.
