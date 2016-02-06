@@ -46,6 +46,10 @@ Navigate to your GitHub project's settings and create a new Webhook with the fol
 The Webhook console will give you diagnostical output of the CI server. Please file any issues
 on this repository and we'll look into them.
 
+Additionally, you'll need an account for posting the updates to GitHub that has `repo:status` access
+to the repositories the continuous integration will be activated for. The OAuth token, which can
+be generated in GitHub's settings area, has to be written to the config file.
+
 ## Request handlers
 The continuous integration server respects the following handlers:
 

@@ -109,7 +109,9 @@ function PushHandler(request, body, response) {
         branch: pullRequest.base.ref,
         sha: pullRequest.base.sha
       }
-    });
+
+    }).then(() =>
+        console.log('[' + request.socket.remoteAddress + '] Build finished for PR #' + pullRequest.number));
   });
 }
 

@@ -51,6 +51,7 @@ class BuildService {
            .then(() => build.updateStatus(options.statusUrl, options.sha, 'success', BUILD_SUCCEEDED_MSG))
            .catch(error => console.error(error));
 
+    // TODO: Update the repository based on |options.base| and apply the |options.diff|.
     // TODO: Execute each of the registered steps.
   }
 
