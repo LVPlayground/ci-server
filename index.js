@@ -33,7 +33,7 @@ function BuildHandler(request, body, response) {
     for (const build of storage.getLatestBuilds()) {
       response.write(`<li>[${build.date}] <b>${build.author}</b>: `);
       response.write(`<a href="${build.url}">${build.title}</a> `);
-      response.write(`(<a href="/build/${build.sha}">log</a>)</li>`);
+      response.write(`(<a href="/build/${build.sha}/update">log</a>)</li>`);
     }
 
     response.write('</ul>');
