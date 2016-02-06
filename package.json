@@ -1,0 +1,16 @@
+{
+  "name": "playground-ci-server",
+  "version": "1.0.0",
+  "description": "A GitHub continuous integration server for Las Venturas Playground",
+  "author": "Russell Krupke <russell@sa-mp.nl>",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/LVPlayground/ci-server.git"
+  },
+  "bugs": {
+    "url": "https://github.com/LVPlayground/ci-server/issues"
+  },
+  "private": true,
+  "license": "MIT"
+}
