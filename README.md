@@ -40,7 +40,7 @@ Navigate to your GitHub project's settings and create a new Webhook with the fol
 - **Payload URL**: http://your.server:1234/push
 - **Content Type**: application/json
 - **Secret**: The secret value in your configuration file.
-- **Events**: Only the _push_ event.
+- **Events**: Only the _pull_request_ event.
 - **Active**: Yes.
 
 The Webhook console will give you diagnostical output of the CI server. Please file any issues

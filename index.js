@@ -4,11 +4,13 @@
 
 'use strict';
 
-const BuildStorage = require('./components/build_storage'),
+const Authentication = require('./components/authentication'),
+      BuildStorage = require('./components/build_storage'),
       Configuration = require('./components/configuration'),
       Server = require('./components/server');
 
 // Variables that will be available after the configuration is available.
+let authentication = null;
 let server = null;
 let storage = null;
 
@@ -47,6 +49,46 @@ function BuildHandler(request, body, response) {
   });
 }
 
+// Handler for pushes coming from GitHub Web hooks. After authentication, these will trigger a build
+// on the continuous integration testing system.
+function PushHandler(request, body, response) {
+  return authentication.verify(request, body).then(error => {
+    if (error) {
+      response.writeHead(401, { 'Content-Type': 'text/plain' });
+      response.end();
+      return;
+    }
+
+    // Authentication has succeeded! Now that we know that the request is coming from GitHub, we
+    // can figure out what has to happen with the request. Only the "pull_request" event is handled.
+    if (request.headers['x-github-event'] != 'pull_request') {
+      response.writeHead(200, { 'Content-Type': 'text/plain' });
+      response.end('Event skipped.');
+      return;
+    }
+
+    // Decode the request's |body| as JSON. If the body cannot be decoded as valid JSON we issue a
+    // HTTP 400 Bad Request response, as something went wrong on GitHub's side.
+    let options = null;
+    try {
+      options = JSON.parse(body);
+
+    } catch (e) { console.error(e); }
+
+    if (!options) {
+      response.writeHead(400, { 'Content-Type': 'text/plain' });
+      response.end();
+      return;
+    }
+
+    // Everything is good.
+    console.log(options);
+
+    response.writeHead(200, { 'Content-Type': 'text/plain' });
+    response.end('Event handled.');
+  });
+}
+
 // Handler for /robots.txt to tell spiders that nothing on the server should be indexed.
 function RobotHandler(request, body, response) {
   response.writeHead(200, {'Content-Type': 'text/plain'});
@@ -57,12 +99,15 @@ function RobotHandler(request, body, response) {
 
 // -------------------------------------------------------------------------------------------------
 
-Configuration.load('config.json').then(configuration => {
-  server = new Server(configuration['bind_host'], configuration['bind_port']);
+Configuration.load('config.json').then(config => {
+  authentication = new Authentication(config['secret']);
+
+  server = new Server(config['bind_host'], config['bind_port']);
 
   server.registerHandler('/build', BuildHandler);
+  server.registerHandler('/push', PushHandler);
   server.registerHandler('/robots.txt', RobotHandler);
 
-  storage = new BuildStorage(configuration['storage_path']);
+  storage = new BuildStorage(config['storage_path']);
 
 }).catch(error => console.error(error));

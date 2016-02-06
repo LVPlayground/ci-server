@@ -2,5 +2,7 @@
   "bind_host": "0.0.0.0",
   "bind_port": 80,
 
-  "storage_path": "build"
+  "storage_path": "build",
+
+  "secret": "YourSecret"
 }
