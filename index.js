@@ -5,9 +5,13 @@
 'use strict';
 
 const Authentication = require('./components/authentication'),
+      BuildService = require('./components/build_service'),
       BuildStorage = require('./components/build_storage'),
       Configuration = require('./components/configuration'),
       Server = require('./components/server');
+
+// Register the build steps required to provide verification for Las Venturas Playground.
+// TODO(Russell): Create some steps.
 
 // Variables that will be available after the configuration is available.
 let authentication = null;
@@ -25,7 +29,7 @@ function BuildHandler(request, body, response) {
     response.write('<ul>');
 
     for (const build of storage.getLatestBuilds()) {
-      response.write(`<li>[${build.date.substr(0, 10)}] <b>${build.author}</b>: `);
+      response.write(`<li>[${build.date}] <b>${build.author}</b>: `);
       response.write(`<a href="${build.url}">${build.title}</a> `);
       response.write(`(<a href="/build/${build.sha}">log</a>)</li>`);
     }
@@ -81,11 +85,30 @@ function PushHandler(request, body, response) {
       return;
     }
 
-    // Everything is good.
-    console.log(options);
-
+    // The request has been received in proper shape. Immediately close the connection with the
+    // GitHub push service as we don't need it anymore.
     response.writeHead(200, { 'Content-Type': 'text/plain' });
     response.end('Event handled.');
+
+    // Now trigger the build service with the change's information. The build service also needs
+    // access to the build storage, as that's where data will be stored.
+    const pullRequest = options.pull_request;
+
+    console.log('[' + request.socket.remoteAddress + '] Triggering a build for PR #' + pullRequest.number);
+
+    BuildService.trigger(storage, {
+      sha: pullRequest.head.sha,
+
+      author: pullRequest.user.login,
+      title: pullRequest.title,
+      url: pullRequest.html_url,
+
+      diff: pullRequest.diff_url,
+      base: {
+        branch: pullRequest.base.ref,
+        sha: pullRequest.base.sha
+      }
+    });
   });
 }
 

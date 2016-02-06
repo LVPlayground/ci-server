@@ -116,6 +116,40 @@ class BuildStorage {
           resolve(this.readBuildFromData(error, data)));
     });
   }
+
+  // Creates a new build file on the filesystem with the given information. Additionally, the list
+  // of recent builds will be updated to include the given information.
+  createBuild(sha, data) {
+    return new Promise((resolve, reject) => {
+      // (1) Verify that the given |sha| has been appropriately formatted.
+      if (!this.verifySha(sha)) {
+        reject(new Error('The given |sha| has not been formatted correctly.'));
+        return;
+      }
+
+      // (2) Append the `date` field to the |data| section with the current date.
+      data.date = new Date().toISOString().split('T')[0];
+
+      // (3) Asynchronously write the data to disk. Resolve the promise when done.
+      fs.writeFile(path.join(this.path_, sha), JSON.stringify(data), error =>
+          error ? reject('Unable to write a file to disk') : resolve(data));
+
+    }).then(data => {
+      // (4) Include the `sha` in the data.
+      data.sha = sha;
+
+      // (5) Make sure that the build is included in the latest build section, but only after
+      // checking that it hasn't already been included.
+      for (const build of this.latestBuilds_) {
+        if (build.sha == sha)
+          return;
+      }
+
+      this.latestBuilds_.unshift(data);
+      while (this.latestBuilds_.length > 10)
+        this.latestBuilds_.pop();
+    })
+  }
 };
 
 module.exports = BuildStorage;
