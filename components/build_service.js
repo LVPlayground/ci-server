@@ -122,7 +122,7 @@ class BuildService {
 
     return Promise.resolve()
         .then(() => this.updateLog(step.id, 'Step starting.'))
-        .then(() => this.updateStatus(step, 'pending', 'Pending.'))
+        .then(() => this.updateStatus(step, 'pending', 'In progress…'))
         .then(() => step.run(log))
         .then(() => this.updateStatus(step, step.success ? 'success' : 'failure', step.status))
         .catch(error => {
