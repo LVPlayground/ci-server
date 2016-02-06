@@ -134,6 +134,6 @@ Configuration.load('config.json').then(config => {
 
   storage = new BuildStorage(config['storage_path']);
 
-  BuildService.registerEndpoint('http://' + config['bind_host'] + ':' + config['bind_port']);
+  BuildService.registerConfiguration(config['endpoint'], config['oauth_token']);
 
 }).catch(error => console.error(error));

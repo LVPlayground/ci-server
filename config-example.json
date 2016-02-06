@@ -1,8 +1,11 @@
 {
+  "endpoint": "http://my-server:80",
+
   "bind_host": "0.0.0.0",
   "bind_port": 80,
 
   "storage_path": "build",
 
-  "secret": "YourSecret"
+  "secret": "YourSecret",
+  "oauth_token": "YourGitHubOauthToken"
 }

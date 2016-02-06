@@ -11,6 +11,7 @@ const https = require('https'),
 const BUILD_STARTED_MSG = 'The build has been started.',
       BUILD_SUCCEEDED_MSG = 'The build has succeeded!';
 
+let buildAuthToken = null;
 let buildEndpoint = null;
 let buildSteps = [];
 
@@ -26,9 +27,11 @@ function wait(time) {
 // In order for statuses on GitHub to not be stuck in the `pending` state, it is important that the
 // service is defensively designed to protect against rogue or timing out build steps.
 class BuildService {
-  // Registers |endpoint| as the public build output endpoint for the service.
-  static registerEndpoint(endpoint) {
+  // Registers |endpoint| as the public build output endpoint for the service, and |authToken| as
+  // the token that will be used for authenticating against the GitHub API.
+  static registerConfiguration(endpoint, authToken) {
     buildEndpoint = endpoint;
+    buildAuthToken = authToken;
   }
 
   // Registers a new |step| with the build service.
@@ -75,10 +78,11 @@ class BuildService {
       };
 
       let requestOptions = url.parse(statusUrl);
+      requestOptions.method = 'POST';
       requestOptions.headers = {
+        'Authorization': 'token ' + buildAuthToken,
         'User-Agent': 'LVPlayground/ci-server'
       };
-      requestOptions.method = 'POST';
 
       const request = https.request(requestOptions, response => {
         if (response.statusCode != 201) {
