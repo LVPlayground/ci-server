@@ -9,7 +9,8 @@ const https = require('https'),
 
 // Messages that will be included for GitHub build status updates.
 const BUILD_STARTED_MSG = 'The build has been started.',
-      BUILD_SUCCEEDED_MSG = 'The build has succeeded!';
+      BUILD_SUCCEEDED_MSG = 'The build has succeeded.',
+      BUILD_ERROR_MSG = 'The build could not be completed.';
 
 let buildAuthToken = null;
 let buildEndpoint = null;
@@ -49,7 +50,10 @@ class BuildService {
            .then(() => build.updateStatus(options.statusUrl, options.sha, 'pending', BUILD_STARTED_MSG))
            .then(() => wait(20000))
            .then(() => build.updateStatus(options.statusUrl, options.sha, 'success', BUILD_SUCCEEDED_MSG))
-           .catch(error => console.error(error));
+           .catch(error => {
+              build.updateStatus(options.statusUrl, options.sha, 'error', BUILD_ERROR_MSG);
+              console.error(error)
+            });
 
     // TODO: Update the repository based on |options.base| and apply the |options.diff|.
     // TODO: Execute each of the registered steps.
