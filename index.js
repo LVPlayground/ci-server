@@ -103,6 +103,7 @@ function PushHandler(request, body, response) {
       title: pullRequest.title,
       url: pullRequest.html_url,
 
+      statusUrl: pullRequest.statuses_url,
       diff: pullRequest.diff_url,
       base: {
         branch: pullRequest.base.ref,
@@ -132,5 +133,7 @@ Configuration.load('config.json').then(config => {
   server.registerHandler('/robots.txt', RobotHandler);
 
   storage = new BuildStorage(config['storage_path']);
+
+  BuildService.registerEndpoint('http://' + config['bind_host'] + ':' + config['bind_port']);
 
 }).catch(error => console.error(error));

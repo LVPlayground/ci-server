@@ -127,8 +127,9 @@ class BuildStorage {
         return;
       }
 
-      // (2) Append the `date` field to the |data| section with the current date.
+      // (2) Append the `log` and the `date` fields to the |data| section.
       data.date = new Date().toISOString().split('T')[0];
+      data.log = 'Build started...';
 
       // (3) Asynchronously write the data to disk. Resolve the promise when done.
       fs.writeFile(path.join(this.path_, sha), JSON.stringify(data), error =>
