@@ -64,7 +64,7 @@ class ValidateJsonStep extends Step {
           log(file + ' contains valid JSON data.');
           this.successCount_++;
         } catch (e) {
-          log(file + ' contains invalid JSON data: ' + e);
+          log(`<error>${file} contains invalid JSON data: ${e}</error>`);
           this.failureCount_++;
         }
 

@@ -59,6 +59,7 @@ function BuildHandler(request, body, response) {
     const steps = Object.keys(build).filter(step => ['author', 'title', 'url', 'date', 'log'].indexOf(step) == -1);
     const headers = steps.map(step => `<a href="/build/${chunks[0]}/${step}">${step}</a>`);
     
+    response.write('<style>error { color: red; font-weight: bold; }</style>');
     response.write(headers.join(' - ') + '<hr><pre>');
 
     response.end(build[chunks[1]]);
