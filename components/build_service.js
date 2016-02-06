@@ -7,10 +7,8 @@
 const https = require('https'),
       url = require('url');
 
-// Messages that will be included for GitHub build status updates.
-const BUILD_STARTED_MSG = 'The build has been started.',
-      BUILD_SUCCEEDED_MSG = 'The build has succeeded.',
-      BUILD_ERROR_MSG = 'The build could not be completed.';
+// Messages that will be shown on GitHub if a JavaScript error occurs while executing a step.
+const BUILD_ERROR_MSG = 'An error occurred while executing this step.';
 
 let buildAuthToken = null;
 let buildEndpoint = null;
@@ -39,37 +37,36 @@ class BuildService {
     buildAuthToken = authToken;
   }
 
-  // Registers a new |step| with the build service.
-  static registerStep(step) {
-
+  // Registers the new |steps| with the build service. Each individual step must be passed as an
+  // entry in the |steps| array, with the value being a constructor extending from Step.
+  static registerSteps(steps) {
+    buildSteps = steps;
   }
 
   // Triggers a build with the build service. The |options| dictionary is expected to have the
   // following members: { sha, author, title, url, statusUrl, diff, base: { branch, sha } }.
   static trigger(storage, options) {
-    const build = new BuildService(storage);
+    const build = new BuildService(storage, options.statusUrl, options.sha);
 
     return Promise.resolve()
         .then(() => build.createLog(options.sha, options.author, options.title, options.url))
-        .then(() => build.updateStatus(options.statusUrl, options.sha, 'pending', BUILD_STARTED_MSG))
         .then(() => build.acquireBuildLock())
-        .then(() => wait(20000))
-        .then(() => build.updateStatus(options.statusUrl, options.sha, 'success', BUILD_SUCCEEDED_MSG))
-        .catch(error => {
-           build.updateStatus(options.statusUrl, options.sha, 'error', BUILD_ERROR_MSG);
-           console.error(error)
-         })
+        .then(() => build.runSteps())
+        .catch(error => console.error(error))
         .then(() => build.releaseBuildLock());
 
     // TODO: Update the repository based on |options.base| and apply the |options.diff|.
-    // TODO: Execute each of the registered steps.
+    // TODO: We probably want to have more excessive error handling in here.
   }
 
   // -----------------------------------------------------------------------------------------------
 
-  constructor(storage) {
+  constructor(storage, statusUrl, sha) {
     this.releaseLock_ = null;
     this.storage_ = storage;
+
+    this.statusUrl_ = statusUrl;
+    this.sha_ = sha;
   }
 
   // Creates a new log entry with the given properties. The "log" property will be set to in-
@@ -90,21 +87,43 @@ class BuildService {
     return currentBuild;
   }
 
+  // Runs the build steps registered with the Build Service in parallel. Build steps are expected to
+  // not update touch the file system. Build log updates will be done atomically.
+  runSteps() {
+    return Promise.all(buildSteps.map(step => this.runStep(new step(this))));
+  }
+
+  // Runs an individual build |step| asynchronously. Each step will register its own status with the
+  // GitHub statuses API, so will show up as its own row in the process.
+  runStep(step) {
+    return Promise.resolve()
+               .then(() => this.updateStatus(step.name, 'pending', 'Pending.'))
+               .then(() => step.run())
+               .then(() => this.updateStatus(step.name, step.success ? 'success' : 'failure', step.status))
+               .catch(error => {
+                  this.updateStatus(step.name, 'error', BUILD_ERROR_MSG);
+                  console.error(error);
+                });
+
+    // TODO: Create a build log entry specific to this step.
+    // TODO: Execute the actual step.
+  }
+
   // Releases the build lock hold by the current build. May only be called once.
   releaseBuildLock() { this.releaseLock_(); }
 
-  // Sends an update to |statusUrl| to mention that we're currently at |status|. Mind that the
+  // Sends an update to |statusUrl_| to mention that |step| currently is at |status|. Mind that the
   // |status| has to be one of { pending, success, error, failure }.
-  updateStatus(statusUrl, sha, status, description) {
+  updateStatus(step, status, description) {
     return new Promise((resolve, reject) => {
       const requestData = {
         state: status,
-        target_url: buildEndpoint + '/build/' + sha,
+        target_url: buildEndpoint + '/build/' + this.sha_,
         description: description,
-        context: 'LVPlayground/ci-server'
+        context: step
       };
 
-      let requestOptions = url.parse(statusUrl);
+      let requestOptions = url.parse(this.statusUrl_);
       requestOptions.method = 'POST';
       requestOptions.headers = {
         'Authorization': 'token ' + buildAuthToken,

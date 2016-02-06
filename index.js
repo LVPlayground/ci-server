@@ -11,7 +11,9 @@ const Authentication = require('./components/authentication'),
       Server = require('./components/server');
 
 // Register the build steps required to provide verification for Las Venturas Playground.
-// TODO(Russell): Create some steps.
+BuildService.registerSteps([
+    /* Validate JSON */ require('./steps/validate_json')
+]);
 
 // Variables that will be available after the configuration is available.
 let authentication = null;
