@@ -11,6 +11,9 @@
   "bugs": {
     "url": "https://github.com/LVPlayground/ci-server/issues"
   },
+  "dependencies": {
+    "glob": "6.x.x"
+  },
   "private": true,
   "license": "MIT"
 }
