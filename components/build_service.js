@@ -98,20 +98,17 @@ class BuildService {
   runStep(step) {
     return Promise.resolve()
         .then(() => this.updateLog(step.id, 'Step starting.'))
-        .then(() => this.updateStatus(step.name, 'pending', 'Pending.'))
+        .then(() => this.updateStatus(step, 'pending', 'Pending.'))
         .then(() => step.run())
-        .then(() => this.updateStatus(step.name, step.success ? 'success' : 'failure', step.status))
+        .then(() => this.updateStatus(step, step.success ? 'success' : 'failure', step.status))
         .catch(error => {
           console.error(error);
           return Promise.all([
-             this.updateStatus(step.name, 'error', BUILD_ERROR_MSG),
+             this.updateStatus(step, 'error', BUILD_ERROR_MSG),
              this.updateLog(step.id, 'Error: ' + JSON.stringify(error))
           ]);
         })
-        .then(() => this.updateLog(step.id, 'Step finished: ' + step.statusOutput()));
-
-    // TODO: Create a build log entry specific to this step.
-    // TODO: Execute the actual step.
+        .then(() => this.updateLog(step.id, step.statusOutput()));
   }
 
   // Releases the build lock hold by the current build. May only be called once.
@@ -120,14 +117,14 @@ class BuildService {
   // Sends an update to |statusUrl_| to mention that |step| currently is at |status|. Mind that the
   // |status| has to be one of { pending, success, error, failure }.
   updateStatus(step, status, description) {
-    console.log('Updating the status for ' + this.sha_ + ' (step: ' + step + ')');
+    console.log('Updating the status for ' + this.sha_ + ' (step: ' + step.id + '; status: ' + status + ')');
 
     return new Promise((resolve, reject) => {
       const requestData = {
         state: status,
-        target_url: buildEndpoint + '/build/' + this.sha_,
+        target_url: buildEndpoint + '/build/' + this.sha_ + '/' + step.id,
         description: description,
-        context: step
+        context: step.name
       };
 
       let requestOptions = url.parse(this.statusUrl_);

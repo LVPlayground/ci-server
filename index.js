@@ -41,17 +41,19 @@ function BuildHandler(request, body, response) {
     return;
   }
 
+  const chunks = request.url.substr(7).split('/');
+
   // Asynchronously retrieve the build information from the filesystem. |build| being set to NULL
   // indicates that the build could not be found for some reason.
-  return storage.getBuild(request.url.substr(7)).then(build => {
-    if (!build) {
+  return storage.getBuild(chunks[0]).then(build => {
+    if (!build || chunks.length != 2 || !build.hasOwnProperty(chunks[1])) {
       response.writeHead(404, { 'Content-Type': 'text/plain' });
       response.end();
       return;
     }
 
     response.writeHead(200, { 'Content-Type': 'text/plain' });
-    response.end(build.log);
+    response.end(build[chunks[1]]);
   });
 }
 

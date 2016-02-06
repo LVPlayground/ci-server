@@ -173,7 +173,7 @@ class BuildStorage {
       if (!log.hasOwnProperty(step))
         log[step] = '';
 
-      log[step] += data + '\n\n';
+      log[step] += data + '\n';
 
       // (4) Write the file to disk again.
       fs.writeFileSync(filePath, JSON.stringify(log));
