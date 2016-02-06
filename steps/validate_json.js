@@ -11,7 +11,11 @@ const Step = require('../components/step');
 // because people blindly modify the files and don't test locally.
 class ValidateJsonStep extends Step {
   constructor(service) {
-    super(service, 'Validate JSON files');
+    super(service, 'validate-json', 'Validate JSON files');
+  }
+
+  run() {
+    return Promise.resolve();
   }
 };
 

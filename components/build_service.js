@@ -18,12 +18,6 @@ let buildSteps = [];
 // have to execute serially to prevent them from messing up each others files.
 let currentBuildLock = Promise.resolve();
 
-function wait(time) {
-  return new Promise(resolve => {
-    setTimeout(() => resolve(), time);
-  });
-}
-
 // The build service will actually execute the steps required in order to run the build. Each step
 // is represented by a BuildStep instance that must be be registered before first use.
 //
@@ -49,7 +43,7 @@ class BuildService {
     const build = new BuildService(storage, options.statusUrl, options.sha);
 
     return Promise.resolve()
-        .then(() => build.createLog(options.sha, options.author, options.title, options.url))
+        .then(() => build.createLog(options.author, options.title, options.url))
         .then(() => build.acquireBuildLock())
         .then(() => build.runSteps())
         .catch(error => console.error(error))
@@ -71,8 +65,14 @@ class BuildService {
 
   // Creates a new log entry with the given properties. The "log" property will be set to in-
   // progress, and can be updated with new information after each step.
-  createLog(sha, author, title, url) {
-    return this.storage_.createBuild(sha, { author, title, url });
+  createLog(author, title, url) {
+    return this.storage_.createBuild(this.sha_, { author, title, url });
+  }
+
+  // Updates the log entry for |step| with |status|. The |status| will be appended to whatever the
+  // current log output for the |step| contains. Updates will be atomic.
+  updateLog(step, status) {
+    return this.storage_.updateLog(this.sha_, step, status);
   }
 
   // Waits for the previous build to complete and then acquires a build lock ourselves, that won't
@@ -97,13 +97,18 @@ class BuildService {
   // GitHub statuses API, so will show up as its own row in the process.
   runStep(step) {
     return Promise.resolve()
-               .then(() => this.updateStatus(step.name, 'pending', 'Pending.'))
-               .then(() => step.run())
-               .then(() => this.updateStatus(step.name, step.success ? 'success' : 'failure', step.status))
-               .catch(error => {
-                  this.updateStatus(step.name, 'error', BUILD_ERROR_MSG);
-                  console.error(error);
-                });
+        .then(() => this.updateLog(step.id, 'Step starting.'))
+        .then(() => this.updateStatus(step.name, 'pending', 'Pending.'))
+        .then(() => step.run())
+        .then(() => this.updateStatus(step.name, step.success ? 'success' : 'failure', step.status))
+        .catch(error => {
+          console.error(error);
+          return Promise.all([
+             this.updateStatus(step.name, 'error', BUILD_ERROR_MSG),
+             this.updateLog(step.id, 'Error: ' + JSON.stringify(error))
+          ]);
+        })
+        .then(() => this.updateLog(step.id, 'Step finished: ' + step.statusOutput()));
 
     // TODO: Create a build log entry specific to this step.
     // TODO: Execute the actual step.
@@ -115,6 +120,8 @@ class BuildService {
   // Sends an update to |statusUrl_| to mention that |step| currently is at |status|. Mind that the
   // |status| has to be one of { pending, success, error, failure }.
   updateStatus(step, status, description) {
+    console.log('Updating the status for ' + this.sha_ + ' (step: ' + step + ')');
+
     return new Promise((resolve, reject) => {
       const requestData = {
         state: status,

@@ -151,6 +151,36 @@ class BuildStorage {
         this.latestBuilds_.pop();
     })
   }
+
+  // Updates the build log of |sha| to include the |data| update for the |step|. The |data| will be
+  // appended to the existing output of the |step| in the log file. These log updates happen
+  // synchronously because multiple steps may be updating the log at the same time.
+  updateLog(sha, step, data) {
+    return new Promise((resolve, reject) => {
+      // (1) Verify that the given |sha| has been appropriately formatted.
+      if (!this.verifySha(sha)) {
+        reject(new Error('The given |sha| has not been formatted correctly.'));
+        return;
+      }
+
+      const filePath = path.join(this.path_, sha);
+
+      // (2) Load the existing file. We assume that it's valid JSON here.
+      const fileContent = fs.readFileSync(filePath, 'utf8'), 
+            log = JSON.parse(fileContent);
+
+      // (3) Append the |data| to the output for the |step|.
+      if (!log.hasOwnProperty(step))
+        log[step] = '';
+
+      log[step] += data + '\n\n';
+
+      // (4) Write the file to disk again.
+      fs.writeFileSync(filePath, JSON.stringify(log));
+
+      resolve();
+    });
+  }
 };
 
 module.exports = BuildStorage;
