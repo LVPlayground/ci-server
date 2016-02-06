@@ -12,6 +12,7 @@
     "url": "https://github.com/LVPlayground/ci-server/issues"
   },
   "dependencies": {
+    "filesize": "3.x.x",
     "glob": "6.x.x"
   },
   "private": true,
