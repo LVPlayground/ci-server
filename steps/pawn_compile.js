@@ -41,14 +41,13 @@ class PawnCompileStep extends Step {
 
         if (error) {
           this.setStatus(false, 'Found errors while trying to compile lvp.amx.');
-          reject(new Error('Unable to compile lvp.amx: ' + error));
         } else {
           const size = filesize(fs.statSync(scriptBinary).size);
 
           this.setStatus(true, 'Successfully compiled lvp.amx (' + size + ').');
-          resolve();
         }
 
+        resolve();
       });
     });
   }
