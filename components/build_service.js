@@ -16,6 +16,10 @@ let buildAuthToken = null;
 let buildEndpoint = null;
 let buildSteps = [];
 
+// The currently executing build. Because we use a single directory on the filesystem, the builds
+// have to execute serially to prevent them from messing up each others files.
+let currentBuildLock = Promise.resolve();
+
 function wait(time) {
   return new Promise(resolve => {
     setTimeout(() => resolve(), time);
@@ -45,15 +49,17 @@ class BuildService {
   static trigger(storage, options) {
     const build = new BuildService(storage);
 
-    Promise.resolve()
-           .then(() => build.createLog(options.sha, options.author, options.title, options.url))
-           .then(() => build.updateStatus(options.statusUrl, options.sha, 'pending', BUILD_STARTED_MSG))
-           .then(() => wait(20000))
-           .then(() => build.updateStatus(options.statusUrl, options.sha, 'success', BUILD_SUCCEEDED_MSG))
-           .catch(error => {
-              build.updateStatus(options.statusUrl, options.sha, 'error', BUILD_ERROR_MSG);
-              console.error(error)
-            });
+    return Promise.resolve()
+        .then(() => build.createLog(options.sha, options.author, options.title, options.url))
+        .then(() => build.updateStatus(options.statusUrl, options.sha, 'pending', BUILD_STARTED_MSG))
+        .then(() => build.acquireBuildLock())
+        .then(() => wait(20000))
+        .then(() => build.updateStatus(options.statusUrl, options.sha, 'success', BUILD_SUCCEEDED_MSG))
+        .catch(error => {
+           build.updateStatus(options.statusUrl, options.sha, 'error', BUILD_ERROR_MSG);
+           console.error(error)
+         })
+        .then(() => build.releaseBuildLock());
 
     // TODO: Update the repository based on |options.base| and apply the |options.diff|.
     // TODO: Execute each of the registered steps.
@@ -62,6 +68,7 @@ class BuildService {
   // -----------------------------------------------------------------------------------------------
 
   constructor(storage) {
+    this.releaseLock_ = null;
     this.storage_ = storage;
   }
 
@@ -70,6 +77,21 @@ class BuildService {
   createLog(sha, author, title, url) {
     return this.storage_.createBuild(sha, { author, title, url });
   }
+
+  // Waits for the previous build to complete and then acquires a build lock ourselves, that won't
+  // be released until the other build steps of the current run have been completed.
+  acquireBuildLock() {
+    const currentBuild = currentBuildLock;
+
+    // Chain a new promise after the current build lock, storing |releaseLock_| as the tool to
+    // release it enabling the next build to start.
+    currentBuildLock = currentBuild.then(() => new Promise(resolve => this.releaseLock_ = resolve));
+
+    return currentBuild;
+  }
+
+  // Releases the build lock hold by the current build. May only be called once.
+  releaseBuildLock() { this.releaseLock_(); }
 
   // Sends an update to |statusUrl| to mention that we're currently at |status|. Mind that the
   // |status| has to be one of { pending, success, error, failure }.
