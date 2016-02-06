@@ -4,6 +4,8 @@
 
 'use strict';
 
+const path = require('path');
+
 // Base class for a build step. Holds information about the current step and provides convenience
 // methods for updating the status of the step through the build service.
 class Step {
@@ -15,6 +17,7 @@ class Step {
     this.success_ = true;
     this.status_ = 'Unknown';
 
+    this.directory_ = path.resolve('../playground');
     this.start_ = new Date().getTime();
   }
 
@@ -42,9 +45,18 @@ class Step {
     return output;
   }
 
+  // Sets the status output of the step to |status|, with |success| indicating whether it passed.
+  setStatus(success, status) {
+    this.success_ = success;
+    this.status_ = status;
+  }
+
+  // Returns the absolute path to the repository's directory.
+  get directory() { return this.directory_; }
+
   // Executes the actual step. Default implementation will error to signal that the method must be
   // implemented by the actual step in order to provide functionality.
-  run() { return Promise.reject(); }
+  run(log) { return Promise.reject(); }
 };
 
 module.exports = Step;

@@ -92,9 +92,8 @@ class BuildService {
   // Updates the local checkout to |base|, then applies |diffUrl| to the tree, which is a URL that
   // contains the patch difference between |base| and the pull request created by the author.
   updateRepository(diffUrl, base) {
-    const repo = new Repository();
-
     const log = BuildService.prototype.updateLog.bind(this, 'update');
+    const repo = new Repository();
 
     return Promise.resolve()
         .then(() => this.updateLog('update', 'Update starting.'))
@@ -119,10 +118,12 @@ class BuildService {
   // Runs an individual build |step| asynchronously. Each step will register its own status with the
   // GitHub statuses API, so will show up as its own row in the process.
   runStep(step) {
+    const log = BuildService.prototype.updateLog.bind(this, step.id);
+
     return Promise.resolve()
         .then(() => this.updateLog(step.id, 'Step starting.'))
         .then(() => this.updateStatus(step, 'pending', 'Pending.'))
-        .then(() => step.run())
+        .then(() => step.run(log))
         .then(() => this.updateStatus(step, step.success ? 'success' : 'failure', step.status))
         .catch(error => {
           console.error(error);
