@@ -4,7 +4,8 @@
 
 'use strict';
 
-const https = require('https'),
+const Repository = require('./repository'),
+      https = require('https'),
       url = require('url');
 
 // Messages that will be shown on GitHub if a JavaScript error occurs while executing a step.
@@ -88,8 +89,65 @@ class BuildService {
   // Updates the local checkout to |base|, then applies |diffUrl| to the tree, which is a URL that
   // contains the patch difference between |base| and the pull request created by the author.
   updateRepository(diffUrl, base) {
-    // TODO: Actually update the repository state.
-    return Promise.resolve();
+    const repo = new Repository();
+
+    return Promise.resolve()
+        .then(() => this.updateLog('update', 'Update starting.'))
+        .then(() => repo.updateTo(base))
+        .then(() => this.downloadDiff(diffUrl))
+        .then(diff => repo.applyDiff(diff))
+        .then(() => this.updateLog('update', 'Update completed.'))
+        .catch(error => {
+          console.error(error);
+          return Promise.all([
+            this.updateLog('update', 'Error: ' + JSON.stringify(error)),
+            Promise.reject(error)  // stop the build run
+          ]);
+        });
+  }
+
+  // Downloads the |diffUrl| and returns a promise that will be resolved with the contents of the
+  // file once this is available. Will happen asynchronously.
+  downloadDiff(diffUrl) {
+    return new Promise((resolve, reject) => {
+      const createRequestOptions = requestUrl => {
+        let requestOptions = url.parse(requestUrl);
+        requestOptions.method = 'GET';
+        requestOptions.headers = {
+          'Authorization': 'token ' + buildAuthToken,
+          'User-Agent': 'LVPlayground/ci-server'
+        };
+
+        return requestOptions;
+      };
+
+      let requestDepth = 0;
+
+      // Handles an HTTP response. Accepts status code 200 as success, any anything between [300,
+      // 399] as a redirection request that will be honoured.
+      const handleResponse = response => {
+        if (response.statusCode >= 300 && response.statusCode < 400) {
+          if (++requestDepth > 5) {
+            reject(new Error('Too many redirects.'));
+            return;
+          }
+
+          https.request(createRequestOptions(response.headers.location), handleResponse).end();
+          return;
+        }
+
+        if (response.statusCode != 200) {
+          reject(new Error('Unable to download the PRs diff.'));
+          return;
+        }
+
+        let body = '';
+        response.on('data', data => body += data)
+        response.on('end', () => resolve(body));
+      };
+
+      https.request(createRequestOptions(diffUrl), handleResponse).end();
+    });
   }
 
   // Runs the build steps registered with the Build Service in parallel. Build steps are expected to
