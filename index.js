@@ -13,7 +13,8 @@ const Authentication = require('./components/authentication'),
 // Register the build steps required to provide verification for Las Venturas Playground.
 BuildService.registerSteps([
     /* Validate JSON */    require('./steps/validate_json'),
-    /* Pawn compilation */ require('./steps/pawn_compile')
+    /* Pawn compilation */ require('./steps/pawn_compile'),
+    /* JavaScript tests */ require('./steps/javascript_tests')
 ]);
 
 // Variables that will be available after the configuration is available.
