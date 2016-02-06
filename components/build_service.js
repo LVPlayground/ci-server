@@ -45,12 +45,10 @@ class BuildService {
     return Promise.resolve()
         .then(() => build.createLog(options.author, options.title, options.url))
         .then(() => build.acquireBuildLock())
+        .then(() => build.updateRepository(options.diff, options.base))
         .then(() => build.runSteps())
         .catch(error => console.error(error))
         .then(() => build.releaseBuildLock());
-
-    // TODO: Update the repository based on |options.base| and apply the |options.diff|.
-    // TODO: We probably want to have more excessive error handling in here.
   }
 
   // -----------------------------------------------------------------------------------------------
@@ -85,6 +83,13 @@ class BuildService {
     currentBuildLock = currentBuild.then(() => new Promise(resolve => this.releaseLock_ = resolve));
 
     return currentBuild;
+  }
+
+  // Updates the local checkout to |base|, then applies |diffUrl| to the tree, which is a URL that
+  // contains the patch difference between |base| and the pull request created by the author.
+  updateRepository(diffUrl, base) {
+    // TODO: Actually update the repository state.
+    return Promise.resolve();
   }
 
   // Runs the build steps registered with the Build Service in parallel. Build steps are expected to
