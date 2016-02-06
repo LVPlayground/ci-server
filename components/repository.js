@@ -62,8 +62,15 @@ class Repository {
   // Applies the PR's diff to the repository. The |diffUrl| will be fetched from the network by the
   // command we use to apply it. This method returns a promise because it happens asynchronously.
   applyDiff(log, diffUrl) {
-    console.log(diffUrl);
-    return Promise.resolve();
+    const commands = [
+      'wget -O - ' + diffUrl + ' | patch -p1'
+    ];
+
+    let queue = Promise.resolve();
+    commands.forEach(command =>
+        queue = queue.then(() => this.executeCommand(log, command)));
+
+    return queue;
   }
 };
 
