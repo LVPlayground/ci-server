@@ -37,7 +37,7 @@ class BuildStorage {
           if (!lhs) return -1;
           if (!rhs) return 1;
 
-          return lhs - rhs;
+          return rhs[1] - lhs[1];
         });
 
         // Read the meta data for the first ten files in the |files| array, and store the result in
