@@ -32,6 +32,8 @@ class Server {
   onRequest(request, response) {
     let body = '';
 
+    console.log('[' + request.socket.remoteAddress + '] Request ' + request.url);
+
     request.setEncoding('utf8');
     request.on('data', data => body += data);
     request.on('end', () => {
@@ -41,9 +43,13 @@ class Server {
           continue;
 
         try {
-          handler.fn(request, body, response);
+          Promise.resolve()
+                 .then(() => handler.fn(request, body, response))
+                 .catch(error => console.error(error));
 
         } catch (e) {
+          console.error('Error whilst handling ' + request.url + ':', e);
+
           // Send a standard 500 Internal Server Error response when the handler errored out.
           response.writeHead(500, { 'Content-Type': 'text/plain' });
           response.end();
