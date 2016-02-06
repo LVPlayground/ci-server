@@ -52,7 +52,15 @@ function BuildHandler(request, body, response) {
       return;
     }
 
-    response.writeHead(200, { 'Content-Type': 'text/plain' });
+    response.writeHead(200, { 'Content-Type': 'text/html' });
+
+    // Create a header at the top of the page with links to the other log files associated with this
+    // SHA. Anything but the blacklist below will be explicitly linked.
+    const steps = Object.keys(build).filter(step => ['author', 'title', 'url', 'date', 'log'].indexOf(step) == -1);
+    const headers = steps.map(step => `<a href="/build/${chunks[0]}/${step}">${step}</a>`);
+    
+    response.write(headers.join(' - ') + '<hr><pre>');
+
     response.end(build[chunks[1]]);
   });
 }
